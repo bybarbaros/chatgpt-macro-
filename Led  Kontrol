@@ -1,0 +1,115 @@
+Klipper yazılımı ile adreslenebilir LED kullanarak 3D yazıcınızda istediğiniz renk ve efektleri oluşturmak için `led_control.cfg` dosyasını aşağıdaki gibi yapılandırabilirsiniz. Klipper, adreslenebilir LED'leri kontrol etmek için WS2812 veya benzeri bir protokolle uyumlu LED şeritleri ile çalışabilir.
+
+Öncelikle, LED şeritlerini kontrol edebilmek için yazıcınızın donanımına bağlı olarak doğru pin bağlantısını ve ayarlarını yapmanız gerektiğini unutmayın.
+
+### 1. LED Şeridi için `led_control.cfg` Yapılandırması
+
+İlk olarak, `led_control.cfg` dosyanızda adreslenebilir LED'lerinizi yapılandırmalısınız. Aşağıdaki kodu `led_control.cfg` dosyanıza ekleyebilirsiniz.
+
+```ini
+[output_pin led_strip]
+pin: PA1               # LED şeridinin bağlı olduğu pin (donanımınıza göre değişebilir)
+pwm: True              # PWM çıkışını aktif eder
+
+[leds my_leds]
+pin: PA1               # LED şeridinin bağlı olduğu pin
+num_leds: 100          # LED şeridindeki toplam LED sayısı
+leds_per_strip: 100    # LED şeridi üzerindeki LED'lerin sayısı
+color_order: GRB       # Renk sırası (WS2812 için GRB kullanılır)
+```
+
+### 2. LED Efektleri İçin Gerekli Ayarları Yapmak
+
+Yukarıdaki temel ayarlardan sonra, yazıcınızın farklı durumlarına göre LED şeridinin renklerini ve efektlerini belirlemeniz gerekiyor. Aşağıdaki gibi, yazıcının durumu ile bağlantılı LED renk değişikliklerini ve efektleri ayarlayabilirsiniz.
+
+```ini
+[virtual_sdcard]
+path: /home/printer/
+
+[printer]
+# Diğer yazıcı ayarları burada olacak.
+
+[display]
+lcd_type: st7920
+# Diğer ekran ayarları
+
+[leds my_leds]
+pin: PA1               # LED şeridinin bağlı olduğu pin
+num_leds: 100          # LED sayısı
+leds_per_strip: 100
+color_order: GRB
+# Durumlarına göre renk ayarları:
+status_white: [255, 255, 255]    # Bekleme konumu (beyaz)
+status_red: [255, 0, 0]          # Nozzle ve tabla ısınırken (kırmızı)
+status_green: [0, 255, 0]        # Yazıcı çalışırken (yeşil)
+status_yellow_blinking: [255, 255, 0]  # Yazma işlemi durakladığında yanıp sönen sarı
+status_red_blinking: [255, 0, 0]     # Hata durumunda yanıp sönen kırmızı
+status_rainbow: true           # Yazma işlemi bittiğinde gökkuşağı efekti
+```
+
+### 3. Durumlara Göre LED Renklendirmesi
+
+`status_white`, `status_red`, `status_green`, `status_yellow_blinking` gibi parametrelerle LED şeridinin renklerini ve durumlarını belirleyeceğiz. Klipper'in `gcode` komutları ile yazıcının durumlarına göre LED renklerinin değişmesini sağlayabilirsiniz.
+
+#### Durumlar:
+1. **Bekleme Konumu**: Beyaz
+2. **Nozzle ve Tabla Isınırken**: Kırmızı
+3. **Yazıcı Çalışırken**: Yeşil
+4. **Yazma İşlemi Durakladığında Yanıp Sönen Sarı**: Sarı yanıp sönecek
+5. **Hata Durumunda Yanıp Sönen Kırmızı**: Hata verirken kırmızı yanıp sönecek
+6. **Yazma İşlemi Bittiğinde Gökkuşağı Efekti**: 20 defa gökkuşağı efekti verecek, ardından beyaz renge dönecek
+
+### 4. GCode'da LED Kontrolü
+
+Yukarıdaki renkleri ve durumları yazıcınızın durumuna göre tetiklemek için, `gcode_macro` komutları kullanabilirsiniz. Bu, yazıcınızın durumu değiştikçe LED'lerin renklerini ayarlayacaktır.
+
+```ini
+[gcode_macro SET_LED_WHITE]
+gcode:
+  SET_LED COLOR=255,255,255  # Beyaz
+
+[gcode_macro SET_LED_RED]
+gcode:
+  SET_LED COLOR=255,0,0  # Kırmızı
+
+[gcode_macro SET_LED_GREEN]
+gcode:
+  SET_LED COLOR=0,255,0  # Yeşil
+
+[gcode_macro SET_LED_YELLOW_BLINKING]
+gcode:
+  SET_LED COLOR=255,255,0 BLINK=1  # Sarı, yanıp söner
+
+[gcode_macro SET_LED_RED_BLINKING]
+gcode:
+  SET_LED COLOR=255,0,0 BLINK=1  # Kırmızı, yanıp söner
+
+[gcode_macro SET_LED_RAINBOW]
+gcode:
+  SET_LED COLOR=255,0,255  # Gökkuşağı efekti başlatacak renk
+  # Gökkuşağı efektinin detayları Klipper belgelerinde yer alabilir
+
+[gcode_macro RESET_LED]
+gcode:
+  SET_LED COLOR=255,255,255  # Yazma işlemi bitiminde beyaz yap
+```
+
+### 5. LED Efektlerinin Sırasını Belirleme
+
+Yazma işlemi bittikten sonra gökkuşağı efekti vermek için aşağıdaki gibi bir komut kullanabilirsiniz:
+
+```ini
+[gcode_macro FINISH_PRINT]
+gcode:
+  SET_LED_RAINBOW  # Gökkuşağı efektini başlat
+  G4 S5  # 5 saniye bekleme
+  SET_LED_RAINBOW  # Efekti tekrar başlat
+  # 20 defa tekrar
+  SET_LED_WHITE  # Sonrasında beyaz renge dön
+```
+
+### Sonuç
+
+Bu şekilde, 3D yazıcınızda Klipper yazılımı ile adreslenebilir LED'leri kontrol edebilirsiniz. Her bir işlem için farklı renkler ve efektler tetiklenebilir. LED şeridi üzerinde beyaz, kırmızı, yeşil, sarı, kırmızı yanıp sönme ve gökkuşağı gibi efektleri istediğiniz gibi ayarlayabilirsiniz.
+
+Yine de, donanımınıza ve yazıcı yapılandırmanıza göre küçük ayarlamalar yapmanız gerekebilir.
