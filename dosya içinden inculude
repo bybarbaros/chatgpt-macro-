@@ -1,0 +1,46 @@
+Klipper yazılımında, birden fazla yapılandırma dosyasını tek bir yapılandırma dosyası (örneğin, `printer.cfg`) içine dahil etmek için `[include]` yönergesini kullanabilirsiniz. Bu yöntem, yapılandırma dosyalarını daha modüler ve organize bir şekilde düzenlemenizi sağlar. 
+
+Aşağıdaki adımları izleyerek klasör içindeki yapılandırma dosyalarını `printer.cfg` dosyasına ekleyebilirsiniz:
+
+### 1. Yapılandırma Dosyalarının Yerini Belirleyin
+Makine yapılandırma dosyalarınızın bulunduğu klasörü belirleyin. Örneğin:
+```
+/home/pi/klipper_config/machine/
+```
+
+Bu klasör içinde, modüler yapılandırma dosyaları (örneğin, `extruder.cfg`, `bed.cfg` gibi) yer alabilir.
+
+### 2. `printer.cfg` Dosyasını Düzenleyin
+`printer.cfg` dosyanızda, klasör içindeki dosyaları dahil etmek için `[include]` yönergesini kullanın. Örnek yapılandırma:
+
+```ini
+[include machine/extruder.cfg]
+[include machine/bed.cfg]
+[include machine/steppers.cfg]
+```
+
+Bu şekilde, `machine` klasörü altındaki yapılandırma dosyaları sırayla `printer.cfg` dosyasına dahil edilir.
+
+### 3. Belirli Bir Klasördeki Tüm Dosyaları Dahil Etmek
+Eğer bir klasördeki tüm `.cfg` dosyalarını otomatik olarak dahil etmek istiyorsanız, aşağıdaki gibi bir wildcard (`*`) kullanabilirsiniz:
+
+```ini
+[include machine/*.cfg]
+```
+
+Bu komut, `machine` klasöründeki tüm `.cfg` uzantılı dosyaları dahil eder. Ancak, bu yöntemde dosya sırası önemlidir ve dosyalar alfabetik sırayla okunur.
+
+### 4. Klipper'ı Yeniden Başlatın
+Değişiklikleri yaptıktan sonra Klipper hizmetini yeniden başlatın:
+
+```bash
+sudo service klipper restart
+```
+
+Yapılandırma dosyalarındaki hataları kontrol etmek için Klipper log dosyasını (`/tmp/klippy.log`) inceleyebilirsiniz.
+
+### Notlar
+- Modüler yapılandırma kullanırken her dosyada yalnızca ilgili bileşenlerin ayarlarının yer almasına dikkat edin. Örneğin, `extruder.cfg` yalnızca ekstruder ile ilgili ayarları içermelidir.
+- Birden fazla dosya arasında çakışan ayarların bulunmamasına dikkat edin. Aynı parametre birden fazla dosyada tanımlanırsa, son yüklenen dosya geçerli olacaktır. 
+
+Bu yöntemle Klipper yapılandırmalarınızı daha düzenli bir hale getirebilirsiniz.
