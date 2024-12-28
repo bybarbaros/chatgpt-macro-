@@ -1,0 +1,45 @@
+Evet, Orca Slicer ile Klipper kullandığınızda, dilimleme sırasında belirlediğiniz filament sıcaklıklarını ve tabla (hotbed) sıcaklıklarını Klipper'ın `START_PRINT` makrosuna aktarmak için bir G-code betiği yazabilirsiniz. Orca Slicer'da özel başlangıç ve bitiş G-code'larını düzenleyerek bu değerleri makroya parametre olarak iletebilirsiniz.
+
+Aşağıdaki örnek, Orca Slicer'da başlangıç G-code'unuzu nasıl yapılandırabileceğinizi göstermektedir:
+
+### Orca Slicer Başlangıç G-code
+1. Orca Slicer'da **Settings** > **Printer Settings** > **Custom G-code** sekmesine gidin.
+2. **Start G-code** bölümüne aşağıdaki kodu ekleyin:
+
+```gcode
+; Filament ve hotbed sıcaklıklarını değişkenlere al
+SET_PRINT_TEMP={first_layer_temperature[0]} ; İlk katman filament sıcaklığı
+SET_BED_TEMP={first_layer_bed_temperature}  ; İlk katman tabla sıcaklığı
+
+; START_PRINT makrosunu çağır
+START_PRINT EXTRUDER_TEMP={SET_PRINT_TEMP} BED_TEMP={SET_BED_TEMP}
+```
+
+### Klipper `START_PRINT` Makrosu
+Klipper yapılandırma dosyanızda, sıcaklıkları kontrol etmek ve başlangıç işlemlerini yapmak için bir `START_PRINT` makrosu tanımlamanız gerekir. Örneğin:
+
+```ini
+[gcode_macro START_PRINT]
+description: Yazdırmaya başlamak için makro
+gcode:
+    {% set extruder_temp = params.EXTRUDER_TEMP|default(200)|int %}
+    {% set bed_temp = params.BED_TEMP|default(60)|int %}
+    
+    # Sıcaklıkları ayarla
+    M140 S{bed_temp}   ; Tabla sıcaklığını ayarla
+    M104 S{extruder_temp} ; Nozzle sıcaklığını ayarla
+    M190 S{bed_temp}   ; Tabla sıcaklığının hedefine ulaşmasını bekle
+    M109 S{extruder_temp} ; Nozzle sıcaklığının hedefine ulaşmasını bekle
+
+    # Yazıcı başlangıç hareketleri
+    G28                 ; Eksenleri sıfırla
+    G1 Z5 F3000         ; Nozzle'ı biraz yukarı kaldır
+    G92 E0              ; Ekstruder pozisyonunu sıfırla
+```
+
+### Açıklamalar
+- **Orca Slicer'da Değişkenler**: `{first_layer_temperature[0]}` ve `{first_layer_bed_temperature}` Orca Slicer tarafından ilk katman için belirlediğiniz sıcaklıkları alır.
+- **Klipper'da Parametreler**: `params.EXTRUDER_TEMP` ve `params.BED_TEMP`, Orca Slicer'dan makroya gönderilen parametreleri alır.
+- **Varsayılan Değerler**: Makroda varsayılan sıcaklıklar tanımlanabilir; bu, Orca Slicer'dan sıcaklık parametreleri geçmezse kullanılacak değerlerdir.
+
+Bu yapılandırmayla, Orca Slicer'daki dilimleme ayarlarında belirttiğiniz sıcaklık değerleri otomatik olarak Klipper'ın başlangıç makrosuna iletilir.
