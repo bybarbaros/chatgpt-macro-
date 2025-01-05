@@ -1,0 +1,103 @@
+#####################################################################
+#   PRINT_START with Bed Stabilization Check
+#####################################################################
+
+[gcode_macro PRINT_START]
+gcode:
+  # Fetch parameters
+  {% set target_bed = params.BED|int %}
+  {% set target_extruder = params.EXTRUDER|int %}
+  {% set target_chamber = params.CHAMBER|default("45")|int %}
+  
+  # Define custom waiting positions
+  {% set x_wait = 150 %}  # Replace with your desired X coordinate
+  {% set y_wait = 150 %}  # Replace with your desired Y coordinate
+  {% set z_wait = 20 %}   # Replace with your desired Z coordinate
+  
+  # Fetch the last print time (stored as a printer variable)
+  {% set last_print_time = printer['gcode_macro last_print_time'].last_time|default(0) %}
+  {% set current_time = printer.toolhead.time %}
+  {% set time_since_last_print = (current_time - last_print_time) / 60 %}
+  
+  # Initial setup
+  G28                                 # Home all axes
+  G90                                 # Set absolute positioning
+  BED_MESH_CLEAR                      # Clear old mesh
+  
+  # Move to custom waiting position and heat bed
+  SET_DISPLAY_TEXT MSG="Heating bed to {target_bed}°C"
+  G1 X{x_wait} Y{y_wait} Z{z_wait} F9000  # Move to custom waiting position
+  M190 S{target_bed}                  # Heat bed and wait
+  
+  # Check if bed stabilization wait is required
+  {% if time_since_last_print > 5 %}
+    SET_DISPLAY_TEXT MSG="Stabilizing bed temp for 3 mins"
+    G4 P180000  # Wait for 3 minutes (180 seconds x 1000 ms)
+  {% else %}
+    SET_DISPLAY_TEXT MSG="Skipping bed stabilization"
+  {% endif %}
+  
+  # Preheat Chamber
+  {% if target_chamber > 0 %}
+    SET_DISPLAY_TEXT MSG="Heating chamber to {target_chamber}°C"
+    TEMPERATURE_WAIT SENSOR="temperature_sensor chamber" MINIMUM={target_chamber}
+  {% endif %}
+  
+  # Preheat Hotend
+  SET_DISPLAY_TEXT MSG="Preheating hotend to 150°C"
+  M109 S150                           # Heat hotend to 150°C
+  
+  # Quad Gantry Leveling (if applicable)
+  SET_DISPLAY_TEXT MSG="Quad Gantry Leveling"
+  QUAD_GANTRY_LEVEL
+  G28 Z                               # Re-home Z
+  
+  # Load bed mesh profile (optional)
+  BED_MESH_PROFILE LOAD=default
+  
+  # Final Hotend Heating
+  SET_DISPLAY_TEXT MSG="Heating hotend to {target_extruder}°C"
+  M109 S{target_extruder}
+  
+  # Prime line and Nozzle Cleaning
+  SET_DISPLAY_TEXT MSG="Priming nozzle"
+  G1 X{x_wait} Y{y_wait} Z{z_wait} F9000  # Move to custom waiting position again
+  G92 E0.0
+  G1 E25 F400
+  CLEAN_NOZZLE
+  G1 X{x_wait} Y{y_wait} Z{z_wait} F5000  # Return to custom waiting position
+  G92 E0.0
+  
+  # Start print status
+  SET_DISPLAY_TEXT MSG="Ready to print"
+  STATUS_PRINTING
+
+
+
+  #*********************************************************
+Eklenen Özellikler:
+Son Baskı Süresinin İzlenmesi:
+last_print_time değişkeni, yazıcının son baskı işleminin zamanını kaydeder.
+
+Zaman Kontrolü:
+
+Eğer son baskıdan itibaren geçen süre 5 dakikadan azsa, yatak stabilizasyon bekleme süresi atlanır.
+Aksi takdirde, yatak ısındıktan sonra 3 dakika beklenir.
+Dinamik Mesajlar:
+Kullanıcı, stabilizasyon süresinin atlanıp atlanmadığını net bir şekilde görebilir.
+
+last_print_time Değişkeninin Güncellenmesi:
+Aşağıdaki makro ile yazıcı her baskı tamamlandığında last_print_time değişkeni güncellenir:
+
+ini
+Kodu kopyala
+
+
+[gcode_macro LAST_PRINT_COMPLETE]
+gcode:
+  {% set current_time = printer.toolhead.time %}
+  SET_GCODE_VARIABLE MACRO=last_print_time VARIABLE=last_time VALUE={current_time}
+
+  
+Bu makroyu baskı bitirme komutlarına (PRINT_END) eklemeniz yeterlidir.
+  
