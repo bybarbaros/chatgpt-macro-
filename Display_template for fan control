@@ -1,8 +1,8 @@
-#Using the quite new `display_template` feature for fans, I have created a fan control for my electronics bay.
-It works similar to what is known from today’s PC mainboards, i.e. you set some temperature interpolation points with a corresponding fan power
-and the template constantly evaluates this and controls the fan depending on the readings of a sensor in the electronics bay
-
-
+#display_templateözelliği kullanarak elektronik bölmem için bir fan kontrolü oluşturdum.
+Günümüz PC anakartlarından bilinen sisteme benzer şekilde çalışır, 
+yani bazı sıcaklık interpolasyon noktalarını buna karşılık gelen fan
+güçleriyle ayarlarsınız ve şablon bunu sürekli olarak değerlendirir ve 
+elektronik bölmesindeki bir sensörün okumalarına bağlı olarak fanı kontrol eder.
 
 [display_template FAN_BAY]
 text:
