@@ -1,0 +1,59 @@
+#Using the quite new `display_template` feature for fans, I have created a fan control for my electronics bay.
+It works similar to what is known from today’s PC mainboards, i.e. you set some temperature interpolation points with a corresponding fan power
+and the template constantly evaluates this and controls the fan depending on the readings of a sensor in the electronics bay
+
+
+
+[display_template FAN_BAY]
+text:
+    # This is the sensor object of the thermistor used to control the fan
+    {% set temp = printer['temperature_sensor electronics_bay'].temperature %}
+
+    # Set the interpolation points here:
+    {% set points = [
+        [0, 0.3],
+        [35, 0.3],
+        [50, 0.5],
+        [60, 0.8],
+        [61, 1.0]
+    ] %}
+
+    {% if temp < points[0][0] %}
+        { "0.0" | trim }
+    {% else %}
+        {% if points|length > 0 %}
+            {% set value = 0 %}
+            {% for i in range((points | length) - 1) %}
+                {% set t1, v1 = points[i] %}
+                {% set t2, v2 = points[i + 1] %}
+                {% if t1 <= temp < t2 %}
+                    {% set value = v1 + (temp - t1) * (v2 - v1) / (t2 - t1) %}
+                    { value | round(3) | trim }
+                {% endif %}
+            {% endfor %}
+
+            {% if temp >= points[-1][0] %}
+                {% set value = points[-1][1] %}
+                { value | round(3) | trim }
+            {% endif %}
+        {% else %}
+            { "0.0" | trim }
+        {% endif %}
+    {% endif %}
+
+## Cooling Fan of the electronics bay
+[fan_generic electronics_bay]
+pin: !PD14
+max_power: 1
+shutdown_speed: 0.0
+cycle_time: 0.00004
+
+[temperature_sensor electronics_bay]
+sensor_type: Generic 3950
+sensor_pin: PF4
+
+# Start the electronics bay fan control
+[delayed_gcode _START_BAY_FAN]
+initial_duration: 1.
+gcode:
+  SET_FAN_SPEED FAN=electronics_bay TEMPLATE=FAN_BAY
